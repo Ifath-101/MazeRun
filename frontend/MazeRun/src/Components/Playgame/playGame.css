@@ -1,0 +1,63 @@
+/* src/components/PlayGame.css */
+.playgame-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 50px;
+  font-family: Arial, sans-serif;
+}
+
+.start-button {
+  background-color: #28a745;
+  color: white;
+  padding: 15px 30px;
+  font-size: 18px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.name-input-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.name-input-section input {
+  padding: 10px;
+  font-size: 16px;
+  width: 250px;
+}
+
+.name-input-section button {
+  background-color: #007bff;
+  color: white;
+  padding: 10px 20px;
+  font-size: 16px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.game-section {
+  text-align: center;
+  margin-top: 20px;
+}
+
+.timer-display {
+  font-size: 100px;
+  font-weight: bold;
+  margin-top: 20px;
+  color: #333;
+}
+
+.low-time {
+  color: red;
+}
+
+.frozen-text {
+  margin-top: 15px;
+  color: #dc3545;
+  font-weight: bold;
+}

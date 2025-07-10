@@ -1,0 +1,12 @@
+.home {
+  display: flex;
+  flex-direction: row; /* places Sidebar on the left, Routes on the right */
+  min-height: 100vh;
+  width: 100%;
+}
+
+.routes-container {
+  flex-grow: 1;
+  padding: 20px;
+  background-color: #fff; /* optional */
+}
