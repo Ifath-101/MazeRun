@@ -9,12 +9,18 @@ const PlayGame = () => {
   const [isFrozen, setIsFrozen] = useState(false);
   const [trophyCollected, setTrophyCollected] = useState(false);
   const [nameEntered, setNameEntered] = useState(false);
+  const [gameEnded, setGameEnded] = useState(false); // ✅ NEW
 
   useEffect(() => {
     let timer;
     if (gameStarted && nameEntered && !isFrozen && timeLeft > 0) {
       timer = setInterval(() => {
-        setTimeLeft((prev) => prev - 1);
+        setTimeLeft((prev) => {
+          if (prev === 1) {
+            setGameEnded(true); // ✅ NEW
+          }
+          return prev - 1;
+        });
       }, 1000);
     }
     return () => clearInterval(timer);
@@ -22,14 +28,20 @@ const PlayGame = () => {
 
   useEffect(() => {
     let interval;
-    if (gameStarted && nameEntered && !isFrozen) {
+    if (gameStarted && nameEntered && !isFrozen && !gameEnded) {
       interval = setInterval(async () => {
         try {
           const res = await axios.get('/api/ir');
           if (res.data.freeze) {
             setIsFrozen(true);
-            await axios.post('/api/save', { name, time: timeLeft });
-            alert(`IR detected! Timer frozen at ${timeLeft}s and saved to DB.`);
+            try {
+              await axios.post('/api/save', { name, time: timeLeft });
+              alert(`IR detected! Timer frozen at ${timeLeft}s and saved to DB.`);
+              setGameEnded(true); // ✅ NEW
+            } catch (err) {
+              alert('Failed to save score to database. Try again.');
+              console.error(err);
+            }
           }
           if (res.data.trophy) {
             setTrophyCollected(true);
@@ -40,11 +52,25 @@ const PlayGame = () => {
       }, 2000);
     }
     return () => clearInterval(interval);
-  }, [gameStarted, nameEntered, isFrozen, timeLeft, name]);
+  }, [gameStarted, nameEntered, isFrozen, timeLeft, name, gameEnded]);
 
-  const handleStart = () => setGameStarted(true);
+  const handleStart = () => {
+    setGameStarted(true);
+  };
+
   const handleNameSubmit = () => {
     if (name.trim() !== '') setNameEntered(true);
+  };
+
+  const handleRestart = () => {
+    // ✅ NEW RESET STATE
+    setGameStarted(false);
+    setName('');
+    setTimeLeft(300);
+    setIsFrozen(false);
+    setTrophyCollected(false);
+    setNameEntered(false);
+    setGameEnded(false);
   };
 
   return (
@@ -71,6 +97,11 @@ const PlayGame = () => {
           </div>
           {isFrozen && <p className="frozen-text">Timer frozen due to IR detection.</p>}
           {trophyCollected && <p className="trophy-text">Trophy collected 🏆</p>}
+          {gameEnded && (
+            <button className="restart-button" onClick={handleRestart}>
+              Restart Game
+            </button>
+          )}
         </div>
       )}
     </div>

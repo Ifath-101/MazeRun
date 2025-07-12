@@ -16,13 +16,17 @@ parser.on('data', (line) => {
   }
 });
 
-export const checkIRStatus = () => {
-  const result = {
-    freeze: freezeDetected,
-    trophy: trophyCollected,
+export const checkIRStatus = (() => {
+  let freezeDetected = false;
+  let trophyCollected = false;
+
+  return () => {
+    const result = {
+      freeze: freezeDetected,
+      trophy: trophyCollected,
+    };
+    freezeDetected = false;
+    trophyCollected = false;
+    return result;
   };
-  // Reset after reading once
-  freezeDetected = false;
-  trophyCollected = false;
-  return result;
-};
+})();
