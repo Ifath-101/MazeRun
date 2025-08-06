@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>IR Game Timer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f4f6f8;
+            font-family: 'Poppins', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 30px;
+            color: #333;
+        }
+
+        h1 {
+            font-size: 4.8rem;
+            margin-bottom: -25px;
+        }
+
+        h4 {
+            font-size: 1.8rem;
+            margin-top: -2px;
+            font-weight: 500;
+        }
+
+        #playerSection {
+            margin-bottom: 20px;
+        }
+
+        input[type="text"] {
+            font-size: 1.3rem;
+            padding: 12px;
+            width: 280px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        #timer {
+            font-size: 100px;
+            font-weight: 700;
+            color: #2c3e50;
+            margin: 30px 0 15px;
+        }
+
+        #message {
+            font-size: 34px;
+            font-weight: 600;
+            color: #d63031;
+            margin-top: 30px;
+            min-height: 50px;
+        }
+
+        .btn {
+            font-size: 1.4rem;
+            padding: 14px 40px;
+            margin: 10px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+
+        .btn:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+        }
+
+        #controls {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>Maze Run</h1>
+    <h4>Presented by AutoMinds</h4>
+
+    <div id="playerSection">
+        <input type="text" id="playerName" placeholder="Enter Player Name" />
+    </div>
+
+    <div id="timer">300</div>
+
+    <div id="controls">
+        <button class="btn" id="startBtn">Start Game</button>
+        <button class="btn" id="resetBtn">Reset</button>
+    </div>
+
+    <div id="message"></div>
+
+    <script>
+        let port, reader;
+        let timeLeft = 300;
+        let timer;
+        const decoder = new TextDecoder();
+        let keepReading = false;
+        let serialBuffer = "";
+        let ir2Triggered = false;
+
+        async function connectToArduino() {
+            try {
+                port = await navigator.serial.requestPort();
+                await port.open({ baudRate: 9600 });
+
+                reader = port.readable.getReader();
+                keepReading = true;
+                ir2Triggered = false;
+                readSerial();
+            } catch (err) {
+                alert("Serial connection failed: " + err);
+            }
+        }
+
+        async function readSerial() {
+            while (keepReading && port.readable) {
+                try {
+                    const { value, done } = await reader.read();
+                    if (done || !value) break;
+
+                    serialBuffer += decoder.decode(value);
+
+                    if (serialBuffer.includes("IR 1 detected")) {
+                        document.getElementById('message').innerText = "🏆 Trophy collected! Escape the maze.";
+                        serialBuffer = "";
+                    } else if (serialBuffer.includes("You Won!") && !ir2Triggered) {
+                        document.getElementById('message').innerText = "🎉 Congratulations! You Won!";
+                        stopTimerAndSerial();
+                        ir2Triggered = true;
+                        serialBuffer = "";
+                    } else if (serialBuffer.includes("You Lost!") && !ir2Triggered) {
+                        document.getElementById('message').innerText = "❌ You Lost! Try Again.";
+                        stopTimerAndSerial();
+                        ir2Triggered = true;
+                        serialBuffer = "";
+                    } else if (serialBuffer.includes("Game over") && !ir2Triggered) {
+                        document.getElementById('message').innerText = "❌ You are caught! Try Again.";
+                        stopTimerAndSerial();
+                        ir2Triggered = true;
+                        serialBuffer = "";
+                    }
+
+                    if (serialBuffer.length > 100) serialBuffer = "";
+                } catch (error) {
+                    console.error("Serial read error", error);
+                    break;
+                }
+            }
+        }
+
+        function stopTimerAndSerial() {
+            clearInterval(timer);
+            keepReading = false;
+            if (reader) reader.releaseLock();
+        }
+
+        function resetAll() {
+            clearInterval(timer);
+            timeLeft = 300;
+            document.getElementById('timer').innerText = timeLeft;
+            document.getElementById('message').innerText = '';
+            document.getElementById('playerName').value = '';
+            serialBuffer = '';
+            keepReading = false;
+            ir2Triggered = false;
+            if (reader) reader.releaseLock();
+        }
+
+        document.getElementById('startBtn').addEventListener('click', async () => {
+            const playerName = document.getElementById('playerName').value.trim();
+            if (playerName === "") {
+                alert("Please enter the player name before starting.");
+                return;
+            }
+
+            if (!port) await connectToArduino();
+
+            if (timer) clearInterval(timer);
+            timeLeft = 300;
+            document.getElementById('timer').innerText = timeLeft;
+            document.getElementById('message').innerText = "💪 Good luck", {playerName};
+            serialBuffer = '';
+            keepReading = true;
+            ir2Triggered = false;
+
+            timer = setInterval(() => {
+                timeLeft--;
+                document.getElementById('timer').innerText = timeLeft;
+                if (timeLeft <= 0) {
+                    stopTimerAndSerial();
+                    document.getElementById('message').innerText = "⏰ Time's up!";
+                }
+            }, 1000);
+        });
+
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            resetAll();
+        });
+    </script>
+</body>
+
+</html>
